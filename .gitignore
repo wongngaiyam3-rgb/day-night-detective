@@ -1,0 +1,6 @@
+source/node_modules/
+source/dist/
+source/.vite/
+.env*
+*.log
+.DS_Store

@@ -1,0 +1,3 @@
+Three.js module and MIT license: supplied 四季偵探｜觀察與發現教學版 archive (Three.js r160).
+Earth equirectangular surface texture: https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg
+Retrieved 2026-10-03; distributed Three.js example asset. The texture is used on a geometric sphere, not as a static picture of the model.

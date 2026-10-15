@@ -68,7 +68,7 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
     ctx.strokeStyle='#91b8cc55';ctx.lineWidth=1;ctx.beginPath();ctx.arc(ec.x,ec.y,pr,0,Math.PI*2);ctx.stroke();
     ctx.strokeStyle='#d8efffcc';ctx.lineWidth=1.2;ctx.beginPath();let terminatorDrawing=false;for(let k=0;k<=180;k++){const t=k*Math.PI/90,normal=[0,Math.cos(t),Math.sin(t)];if(dot(normal,sight)>0){const p=project(normal.map((v,i)=>earth[i]+v*R*1.002));if(terminatorDrawing)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y);terminatorDrawing=true;}else terminatorDrawing=false;}ctx.stroke();
     const labels=offsets.map((offset,i)=>{const normal=rotate(geo(114.2+offset,LAT,1),a),world=normal.map((v,j)=>earth[j]+v*R*1.018),p=project(world),visible=dot(normal,sight)>.035;
-      if(visible){ctx.fillStyle=colors[i];ctx.beginPath();ctx.arc(p.x,p.y,i===selected?5:3.5,0,Math.PI*2);ctx.fill();if(i===selected){ctx.strokeStyle='#fff3d2';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.stroke();}}return{id:['A','B','C','D'][i],...p,visible};});
+      if(visible){ctx.fillStyle=colors[i];ctx.beginPath();ctx.arc(p.x,p.y,i===selected?5:3.5,0,Math.PI*2);ctx.fill();if(i===selected){ctx.strokeStyle='#fff3d2';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.stroke();}}const tip=project(world.map((v,j)=>v+normal[j]*.45));return{id:['A','B','C','D'][i],...p,visible,upAngle:Math.atan2(tip.x-p.x,p.y-tip.y)/D};});
     onFrame({labels,selectedVisible:labels[selected].visible,sun:{x:sc.x,y:sc.y+sr+10},north:project(AXIS.map((v,i)=>earth[i]+v*2.43))});
   }
   function invalidate(){if(!disposed&&!pending)pending=requestAnimationFrame(draw);}

@@ -1,5 +1,6 @@
 "use client";
-import { PersonStanding, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
+import ObserverAvatar from "./observer-avatar";
 import { observerSky, OFFSETS } from "../lib/earth-geometry.js";
 
 type Point = {id:string;name:string;color:string};
@@ -13,7 +14,7 @@ export default function ObserverView({angle,selected,points}:{angle:number;selec
     day?"站在這裏，可以看見太陽。":"地球擋住了陽光，看不見太陽。";
   const gradient=boundary?["#427e9f","#f3be85"]:day?["#68b1d8","#c9e8ec"]:["#081626","#203b58"];
   return <section className={`observer-view ${day?"day":"night"}`} aria-label="小人的視野" data-testid="observer-view" data-point={point.id} data-altitude={sky.altitude.toFixed(2)}>
-    <div className="observer-head"><span><PersonStanding size={20}/>小人的視野</span><span className="observer-location"><i style={{background:point.color}}/>{point.id} {point.name}</span></div>
+    <div className="observer-head"><span><ObserverAvatar className="observer-heading-avatar" aria-hidden="true"/>小人的視野</span><span className="observer-location"><i style={{background:point.color}}/>{point.id} {point.name}</span></div>
     <div className="observer-sky">
       <p>站在 {point.id}，面向南方</p>
       <svg viewBox="0 0 340 162" role="img" aria-label={`${point.id} ${point.name}的地面視野：${phase}`}>

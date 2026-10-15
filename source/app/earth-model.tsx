@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { Move3D, RotateCw, PersonStanding } from "lucide-react";
+import { Move3D, RotateCw } from "lucide-react";
+import ObserverAvatar from "./observer-avatar";
 
 type Point = { id: string; name: string; color: string };
-type Frame = { labels: {id:string;x:number;y:number;visible:boolean}[];selectedVisible:boolean;sun:{x:number;y:number};north:{x:number;y:number} };
+type Frame = { labels: {id:string;x:number;y:number;visible:boolean;upAngle:number}[];selectedVisible:boolean;sun:{x:number;y:number};north:{x:number;y:number} };
 type Controller = {kind?:string;updateModel:(angle:number,selected:number,rays:boolean)=>void;resize:(w:number,h:number)=>void;rotateView:(dx:number,dy:number)=>void;preset:(view:string)=>void;hitEarth:(x:number,y:number)=>boolean;dispose:()=>void};
 export default function EarthModel({angle,selected,rays,names,onChange,points}:{angle:number;selected:number;rays:boolean;names:boolean;onChange:(a:number)=>void;points:Point[]}) {
   const canvas=useRef<HTMLCanvasElement>(null);
@@ -54,7 +55,7 @@ export default function EarthModel({angle,selected,rays,names,onChange,points}:{
     <canvas ref={canvas} className="earth-canvas" aria-label="3D 太陽與地球球體模型；朝向太陽的一面受到陽光，另一面背光。可拖動地球自轉，或切換到轉視角。" onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end}/>
     <div className="model-toolbar"><div className="model-mode"><button className={mode==="spin"?"active":""} aria-pressed={mode==="spin"} onClick={()=>setMode("spin")}><RotateCw size={14}/>轉地球</button><button className={mode==="view"?"active":""} aria-pressed={mode==="view"} onClick={()=>setMode("view")}><Move3D size={14}/>轉視角</button></div><div className="model-presets">{[["three","立體"],["north","俯視"]].map(([v,t])=><button key={v} className={preset===v?"active":""} aria-pressed={preset===v} aria-label={v==="three"?"切換立體視角":"切換北極俯視"} onClick={()=>{engine.current?.preset(v);setPreset(v);}}>{t}</button>)}</div></div>
     <p className="three-instruction">{mode==="spin"?"左右拖動地球，或按播放觀察自轉。":"拖動畫面，換個方向看。時間不會改變。"}</p>
-    <div className="world-labels" aria-hidden="true">{frame?.labels.map((label,i)=>label.visible&&<span key={label.id} className={`world-point ${i===selected?"tracked":""}`} style={{left:label.x,top:label.y,color:points[i].color}}>{i===selected&&<PersonStanding size={17}/>} {label.id}<span className="world-point-name"> {points[i].name}</span></span>)}{frame&&<><span className="world-sun" style={{left:frame.sun.x,top:frame.sun.y}}>太陽</span><span className="world-north" style={{left:frame.north.x,top:frame.north.y}}>北極 · 地軸</span></>}</div>
+    <div className="world-labels" aria-hidden="true">{frame?.labels.map((label,i)=>label.visible&&(i===selected?<span key={label.id} className="observer-person-anchor" data-testid="observer-person" style={{left:label.x,top:label.y}}><ObserverAvatar className="observer-person-art" style={{transform:`translate(-50%,-100%) rotate(${label.upAngle}deg)`}}/><span className="observer-person-badge" style={{left:Math.sin(label.upAngle*Math.PI/180)*84,top:-Math.cos(label.upAngle*Math.PI/180)*84}}>{label.id}<span className="world-point-name"> {points[i].name}</span></span><span className="observer-foot-ring"/></span>:<span key={label.id} className="world-point" style={{left:label.x,top:label.y,color:points[i].color}}>{label.id}<span className="world-point-name"> {points[i].name}</span></span>))}{frame&&<><span className="world-sun" style={{left:frame.sun.x,top:frame.sun.y}}>太陽</span><span className="world-north" style={{left:frame.north.x,top:frame.north.y}}>北極 · 地軸</span></>}</div>
     <div className="three-legend"><span><i/>向光面{names?" · 白天":""}</span><span><i/>背光面{names?" · 黑夜":""}</span></div>
     {frame&&!frame.selectedVisible&&status==="ready"&&<p className="hidden-point-note">{points[selected].id} 在球體後方，可轉動視角找找看。</p>}
     {status!=="ready"&&<div className="model-status" role="status">{status==="loading"?"正在載入 3D 地球…":error}</div>}

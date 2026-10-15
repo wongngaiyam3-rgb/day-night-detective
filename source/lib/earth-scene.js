@@ -133,7 +133,8 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
       m.getWorldPosition(world);
       const normal=world.clone().sub(earthCenter).normalize();
       const visible=normal.dot(sight)>0.035;
-      return {id:['A','B','C','D'][i],...project(world),visible};
+      const point=project(world),tip=project(world.clone().addScaledVector(normal,.45));
+      return {id:['A','B','C','D'][i],...point,visible,upAngle:Math.atan2(tip.x-point.x,point.y-tip.y)/DEG};
     });
     const sunLabel=project(sun.position);sunLabel.y+=SUN_RADIUS*height/vertical+10;
     onFrame({labels,selectedVisible:labels[selected].visible,

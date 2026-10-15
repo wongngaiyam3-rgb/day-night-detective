@@ -15,7 +15,7 @@ const outputLut=Array.from({length:4096},(_,i)=>srgb(i/4095));
 export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
   const ctx=canvas.getContext('2d',{alpha:false});
   if(!ctx)throw new Error('Canvas is unavailable');
-  let width=900,height=520,angle=0,selected=0,showRays=true,yaw=-.12,elevation=0,disposed=false,pending=0;
+  let width=900,height=520,angle=0,selected=0,showRays=true,showAxis=true,yaw=-.12,elevation=0,disposed=false,pending=0;
   let texture=null,texW=0,texH=0;
   let earth=[1.15,0,0],sun=[-3.9,0,0],target=[-.85,0,0],camera=[-.85,4.4,11.1];
   let sight=[0,.371,.928],right=[1,0,0],up=[0,.928,-.371],scale=100,originX=450,originY=260;
@@ -45,7 +45,7 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
     const glow=ctx.createRadialGradient(sc.x,sc.y,sr*.2,sc.x,sc.y,sr*2.8);glow.addColorStop(0,'#ffd88bc0');glow.addColorStop(1,'#edb24700');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(sc.x,sc.y,sr*2.8,0,Math.PI*2);ctx.fill();
     const sg=ctx.createRadialGradient(sc.x-sr*.25,sc.y-sr*.3,0,sc.x,sc.y,sr);sg.addColorStop(0,'#fff4bd');sg.addColorStop(.7,'#ffdc87');sg.addColorStop(1,'#f0b951');ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sc.x,sc.y,sr,0,Math.PI*2);ctx.fill();
     if(showRays){for(const y of[-.9,-.45,0,.45,.9]){const start=project([sun[0]+Math.sqrt(SUN_RADIUS*SUN_RADIUS-y*y-.25*.25)+.08,y,.25]),end=project([earth[0]-Math.sqrt(R*R-y*y-.25*.25)-.09,y,.25]);ctx.strokeStyle='#ffd17c66';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();const dx=end.x-start.x,dy=end.y-start.y,l=Math.hypot(dx,dy),ux=dx/l,uy=dy/l;const ax=start.x+dx*.6,ay=start.y+dy*.6;ctx.strokeStyle='#ffd17cbb';ctx.beginPath();ctx.moveTo(ax-ux*7-uy*3,ay-uy*7+ux*3);ctx.lineTo(ax,ay);ctx.lineTo(ax-ux*7+uy*3,ay-uy*7-ux*3);ctx.stroke();}}
-    ctx.strokeStyle='#ffe1a0';ctx.lineWidth=3;ctx.setLineDash([]);for(const span of[[-2.4,-R],[R,2.4]]){const p=project(AXIS.map((v,i)=>earth[i]+v*span[0])),q=project(AXIS.map((v,i)=>earth[i]+v*span[1]));ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}ctx.setLineDash([]);
+    ctx.strokeStyle='#ffe1a0';ctx.lineWidth=3;ctx.setLineDash([]);if(showAxis)for(const span of[[-2.4,-R],[R,2.4]]){const p=project(AXIS.map((v,i)=>earth[i]+v*span[0])),q=project(AXIS.map((v,i)=>earth[i]+v*span[1]));ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}ctx.setLineDash([]);
     const ec=project(earth),pr=R*scale;
     if(texture){
       const side=Math.ceil(pr*2)+2;sprite.width=side;sprite.height=side;const frame=spriteCtx.createImageData(side,side),data=frame.data;
@@ -69,12 +69,12 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
     ctx.strokeStyle='#d8efffcc';ctx.lineWidth=1.2;ctx.beginPath();let terminatorDrawing=false;for(let k=0;k<=180;k++){const t=k*Math.PI/90,normal=[0,Math.cos(t),Math.sin(t)];if(dot(normal,sight)>0){const p=project(normal.map((v,i)=>earth[i]+v*R*1.002));if(terminatorDrawing)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y);terminatorDrawing=true;}else terminatorDrawing=false;}ctx.stroke();
     const labels=offsets.map((offset,i)=>{const normal=rotate(geo(114.2+offset,LAT,1),a),world=normal.map((v,j)=>earth[j]+v*R*1.018),p=project(world),visible=dot(normal,sight)>.035;
       if(visible){ctx.fillStyle=colors[i];ctx.beginPath();ctx.arc(p.x,p.y,i===selected?5:3.5,0,Math.PI*2);ctx.fill();if(i===selected){ctx.strokeStyle='#fff3d2';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.stroke();}}const tip=project(world.map((v,j)=>v+normal[j]*.45));return{id:['A','B','C','D'][i],...p,visible,upAngle:Math.atan2(tip.x-p.x,p.y-tip.y)/D};});
-    onFrame({labels,selectedVisible:labels[selected].visible,sun:{x:sc.x,y:sc.y+sr+10},north:project(AXIS.map((v,i)=>earth[i]+v*2.43))});
+    onFrame({labels,selectedVisible:labels[selected].visible,sun:{x:sc.x,y:sc.y+sr+10},north:project(AXIS.map((v,i)=>earth[i]+v*R)),south:project(AXIS.map((v,i)=>earth[i]-v*R)),axis:project(AXIS.map((v,i)=>earth[i]+v*2.12)),width,height});
   }
   function invalidate(){if(!disposed&&!pending)pending=requestAnimationFrame(draw);}
   function resize(w,h){if(w<40||h<170)return;width=w;height=h;canvas.width=Math.round(w);canvas.height=Math.round(h);earth=[w<520?1:1.15,0,0];sun=[w<520?-3.9:-4.8,0,0];target=[w<520?-.4:-.85,0,0];invalidate();}
   resize(canvas.clientWidth||900,canvas.clientHeight||520);
-  return{kind:'software-3d',updateModel(a,s,r){angle=a;selected=s;showRays=r;invalidate();},resize,
+  return{kind:'software-3d',updateModel(a,s,r,axis=true){angle=a;selected=s;showRays=r;showAxis=axis;canvas.dataset.axisVisible=String(axis);invalidate();},resize,
     rotateView(dx,dy){yaw-=dx*.008;elevation=Math.max(-1.2,Math.min(1.56,elevation+dy*.006));invalidate();},
     preset(view){yaw=view==='north'?Math.PI/2:-.12;elevation=view==='north'?Math.PI/2-AXIAL_TILT:0;invalidate();},
     hitEarth(x,y){const rect=canvas.getBoundingClientRect(),p=project(earth);return Math.hypot(x-rect.left-p.x,y-rect.top-p.y)<R*scale;},

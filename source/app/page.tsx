@@ -29,6 +29,8 @@ export default function Page() {
   const [selected, setSelected] = useState(0);
   const [names, setNames] = useState(false);
   const [rays, setRays] = useState(true);
+  const [labels, setLabels] = useState(true);
+  const [axis, setAxis] = useState(true);
   const [tab, setTab] = useState("observe");
   const [challenge, setChallenge] = useState(0);
   const [done, setDone] = useState<boolean[]>([false, false, false]);
@@ -75,7 +77,8 @@ export default function Page() {
       <div className="learning-layout">
         <section className="simulation" aria-label="互動太陽與地球模型">
           <div className="stage-head"><span><Globe2 size={17} /> 太陽與地球</span><span className="view-label">3D · 地軸 23.5°</span></div>
-          <div className="model-stage"><EarthModel angle={angle} selected={selected} rays={rays} names={names} onChange={move} points={POINTS} /></div>
+          <div className="model-display-controls"><label><Switch checked={labels} onCheckedChange={setLabels} aria-label="顯示標籤"/> 顯示標籤</label><label><Switch checked={axis} onCheckedChange={setAxis} aria-label="顯示地軸"/> 顯示地軸</label></div>
+          <div className="model-stage"><EarthModel angle={angle} selected={selected} rays={rays} names={names} showLabels={labels} showAxis={axis} onChange={move} points={POINTS} /></div>
           <div className="stage-caption"><span><span className="point-dot" style={{ background: POINTS[selected].color }} /> 正在追蹤 {POINTS[selected].id} {POINTS[selected].name}</span><span>播放沿實際自轉方向</span></div>
           <div className="control-panel" id="controls"><div className="control-top"><div className="play-group"><button className="play-button" onClick={() => setPlaying(v => !v)} aria-label={playing ? "暫停自轉" : "播放自轉"}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}{playing ? "暫停" : "播放"}</button><button className="reset-button" onClick={reset} aria-label="重設模型"><RotateCcw size={18} /></button></div><div className="speed-control" aria-label="播放速度">速度{[0.5, 1, 2].map(s => <button key={s} aria-pressed={speed === s} className={speed === s ? "active" : ""} onClick={() => setSpeed(s)}>{s}×</button>)}</div></div>
             <div className="slider-label"><label id="rotation-label">轉動地球</label><output aria-label="自轉角度">{Math.round(angle)}° <span>／ 一圈 360°</span></output></div>

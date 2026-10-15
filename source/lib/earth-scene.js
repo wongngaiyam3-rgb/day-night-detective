@@ -139,7 +139,9 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
     const sunLabel=project(sun.position);sunLabel.y+=SUN_RADIUS*height/vertical+10;
     onFrame({labels,selectedVisible:labels[selected].visible,
       sun:sunLabel,
-      north:project(earthCenter.clone().add(new THREE.Vector3(...AXIS).multiplyScalar(2.43)))});
+      north:project(earthCenter.clone().add(new THREE.Vector3(...AXIS).multiplyScalar(RADIUS))),
+      south:project(earthCenter.clone().add(new THREE.Vector3(...AXIS).multiplyScalar(-RADIUS))),
+      axis:project(earthCenter.clone().add(new THREE.Vector3(...AXIS).multiplyScalar(2.12))),width,height});
   }
   function invalidate(){if(!disposed&&!pending) pending=requestAnimationFrame(draw);}
   function resize(w,h) {
@@ -156,7 +158,7 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
   }
   resize(canvas.clientWidth||900,canvas.clientHeight||520);
   return {
-    updateModel(nextAngle,nextSelected,showRays){angle=nextAngle;selected=nextSelected;rays.visible=showRays;invalidate();},
+    updateModel(nextAngle,nextSelected,showRays,showAxis=true){angle=nextAngle;selected=nextSelected;rays.visible=showRays;axis.visible=showAxis;canvas.dataset.axisVisible=String(showAxis);invalidate();},
     resize,
     rotateView(dx,dy){yaw-=dx*0.008;elevation=THREE.MathUtils.clamp(elevation+dy*0.006,-1.2,1.56);invalidate();},
     preset(view){yaw=view==='north'?Math.PI/2:-0.12;elevation=view==='north'?Math.PI/2-AXIAL_TILT:0;invalidate();},

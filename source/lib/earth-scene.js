@@ -3,6 +3,8 @@ import { AXIAL_TILT, AXIS } from './earth-geometry.js';
 
 const DEG = Math.PI / 180;
 const RADIUS = 1.5;
+const SUN_RADIUS = 1.8;
+const VIEW_ROLL = 0.24;
 const HK_LONGITUDE = 114.2;
 const LATITUDE = 22.3;
 const offsets = [0, 180, -90, 90];
@@ -63,11 +65,10 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
   });
   const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.092,16,12),new THREE.MeshBasicMaterial({color:'#fff4cf',wireframe:true,transparent:true,opacity:0.85}));
   earth.add(highlight);
-  const axis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-2.05,0),new THREE.Vector3(0,2.05,0)]),new THREE.LineDashedMaterial({color:'#ffe1a0',dashSize:0.13,gapSize:0.07,transparent:true,opacity:0.8}));
-  axis.computeLineDistances();
+  const axis = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,4.8,12),new THREE.MeshBasicMaterial({color:'#ffe1a0'}));
   const axisGroup = new THREE.Group(); axisGroup.position.copy(earthCenter); axisGroup.rotation.x=AXIAL_TILT;axisGroup.add(axis); scene.add(axisGroup);
 
-  const sun = new THREE.Mesh(new THREE.SphereGeometry(0.46,48,32),new THREE.MeshBasicMaterial({color:'#ffdb87'}));
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_RADIUS,48,32),new THREE.MeshBasicMaterial({color:'#ffdb87'}));
   sun.position.set(-3.9,0,0); scene.add(sun);
   const glowCanvas = document.createElement('canvas'); glowCanvas.width=128; glowCanvas.height=128;
   const ctx = glowCanvas.getContext('2d');
@@ -76,14 +77,14 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
   ctx.fillStyle=glow; ctx.fillRect(0,0,128,128);
   const glowTexture = new THREE.CanvasTexture(glowCanvas);
   const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
-  glowSprite.position.copy(sun.position); glowSprite.scale.set(2.3,2.3,1); scene.add(glowSprite);
+  glowSprite.position.copy(sun.position); glowSprite.scale.set(5.2,5.2,1); scene.add(glowSprite);
   const rays = new THREE.Group(); scene.add(rays);
   function buildRays() {
     for(const child of [...rays.children]) {
       child.traverse(o=>{o.geometry?.dispose();if(o.material) o.material.dispose();}); rays.remove(child);
     }
     for(const y of [-0.9,-0.45,0,0.45,0.9]) {
-      const start = new THREE.Vector3(sun.position.x+0.63,y,0.25);
+      const start = new THREE.Vector3(sun.position.x+Math.sqrt(SUN_RADIUS*SUN_RADIUS-y*y-0.25*0.25)+0.08,y,0.25);
       const endX=earthCenter.x-Math.sqrt(RADIUS*RADIUS-y*y-0.25*0.25)-0.09;
       const arrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0),start,endX-start.x,0xffd17c,0.13,0.07);
       arrow.line.material.transparent=true; arrow.line.material.opacity=0.42;
@@ -107,13 +108,14 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
     highlight.position.copy(markers[selected].position);
     markers.forEach((m,i)=>m.scale.setScalar(i===selected?1.3:1));
     camera.position.set(target.x+12*Math.cos(elevation)*Math.sin(yaw),12*Math.sin(elevation),12*Math.cos(elevation)*Math.cos(yaw));
-    camera.lookAt(target); camera.updateMatrixWorld();
+    camera.lookAt(target); camera.rotateZ(VIEW_ROLL); camera.updateMatrixWorld();
+    canvas.dataset.axisTilt="23.5";canvas.dataset.sunRadius=String(SUN_RADIUS);canvas.dataset.earthRadius=String(RADIUS);
     // Keep both bodies inside the space below the model toolbar as the camera turns.
     const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0);
     const up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
     const e=earthCenter.clone().sub(target),s=sun.position.clone().sub(target);
-    const minX=Math.min(e.dot(right)-RADIUS,s.dot(right)-0.65),maxX=Math.max(e.dot(right)+RADIUS,s.dot(right)+0.65);
-    const minY=Math.min(e.dot(up)-RADIUS,s.dot(up)-0.65),maxY=Math.max(e.dot(up)+RADIUS,s.dot(up)+0.65);
+    const minX=Math.min(e.dot(right)-RADIUS,s.dot(right)-SUN_RADIUS-0.1),maxX=Math.max(e.dot(right)+RADIUS,s.dot(right)+SUN_RADIUS+0.1);
+    const minY=Math.min(e.dot(up)-RADIUS,s.dot(up)-SUN_RADIUS-0.1),maxY=Math.max(e.dot(up)+RADIUS,s.dot(up)+SUN_RADIUS+0.1);
     const aspect=width/Math.max(height,1);
     const vertical=Math.max(5.4,(width<520?6.7:8.4)/aspect,(maxX-minX)*height/Math.max(1,width-36),(maxY-minY)*height/Math.max(1,height-150));
     const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2-vertical*15/height;
@@ -128,10 +130,10 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
       const visible=normal.dot(sight)>0.035;
       return {id:['A','B','C','D'][i],...project(world),visible};
     });
-    const sunLabel=project(sun.position);sunLabel.y+=0.46*height/vertical+10;
+    const sunLabel=project(sun.position);sunLabel.y+=SUN_RADIUS*height/vertical+10;
     onFrame({labels,selectedVisible:labels[selected].visible,
       sun:sunLabel,
-      north:project(earthCenter.clone().add(new THREE.Vector3(...AXIS).multiplyScalar(1.95)))});
+      north:project(earthCenter.clone().add(new THREE.Vector3(...AXIS).multiplyScalar(2.43)))});
   }
   function invalidate(){if(!disposed&&!pending) pending=requestAnimationFrame(draw);}
   function resize(w,h) {
@@ -139,7 +141,7 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
     width=w; height=h;
     const small=w<520;
     earthCenter.x=small?1.0:1.15;earth.position.copy(earthCenter);axisGroup.position.copy(earthCenter);
-    sun.position.x=small?-2.7:-3.9;glowSprite.position.copy(sun.position);
+    sun.position.x=small?-3.9:-4.8;glowSprite.position.copy(sun.position);
     target.x=small?-0.4:-0.85;
     const aspect=w/Math.max(h,1);
     const vertical=Math.max(5.4,(small?6.7:8.4)/aspect);

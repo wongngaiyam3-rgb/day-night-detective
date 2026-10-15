@@ -1,13 +1,14 @@
-// Equinox orientation: the spin axis is tilted from the orbital normal,
-// while the Sun (-X) lies in the equatorial plane. World = Rx(tilt) Ry(spin).
+// December-solstice orientation. Sunlight travels along +X; the terminator
+// is the fixed plane X=0. The northern axis leans away from the Sun.
+// World = Rz(-tilt) Ry(spin), shared by both renderers and the UI.
 export const DEG = Math.PI / 180;
 export const AXIAL_TILT = 23.5 * DEG;
 export const OBSERVER_LATITUDE = 22.3;
 export const HK_LONGITUDE = 114.2;
-export const AXIS = [0, Math.cos(AXIAL_TILT), Math.sin(AXIAL_TILT)];
+export const AXIS = [Math.sin(AXIAL_TILT), Math.cos(AXIAL_TILT), 0];
 export const OFFSETS = [0, 180, -90, 90];
 export function tiltVector(v) {
-  return [v[0], v[1]*AXIS[1]-v[2]*AXIS[2], v[1]*AXIS[2]+v[2]*AXIS[1]];
+  return [v[0]*AXIS[1]+v[1]*AXIS[0], -v[0]*AXIS[0]+v[1]*AXIS[1], v[2]];
 }
 export function worldNormal(longitude, latitude, angle) {
   const lat=latitude*DEG, lon=(180+longitude-HK_LONGITUDE+angle)*DEG;
@@ -18,6 +19,7 @@ export function observerSky(angle, offset=0) {
   const normal=worldNormal(HK_LONGITUDE+offset,OBSERVER_LATITUDE,angle);
   const light=-normal[0];
   const altitude=Math.asin(Math.max(-1,Math.min(1,light)))/DEG;
-  const azimuth=(Math.atan2(-Math.sin(h),-Math.sin(lat)*Math.cos(h))/DEG+360)%360;
+  const declination=-AXIAL_TILT;
+  const azimuth=(Math.atan2(-Math.cos(declination)*Math.sin(h),Math.cos(lat)*Math.sin(declination)-Math.sin(lat)*Math.cos(declination)*Math.cos(h))/DEG+360)%360;
   return {light,altitude,azimuth};
 }

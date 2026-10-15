@@ -2,7 +2,7 @@
 // Each visible pixel is a ray/sphere intersection, mapped to geographic
 // longitude/latitude. Illumination uses the surface normal in world space.
 import { AXIAL_TILT, AXIS, tiltVector } from './earth-geometry.js';
-const D=Math.PI/180, R=1.5, LAT=22.3, SUN_RADIUS=1.8, VIEW_ROLL=.24;
+const D=Math.PI/180, R=1.5, LAT=22.3, SUN_RADIUS=1.8, VIEW_ROLL=0;
 const offsets=[0,180,-90,90],colors=['#ffca64','#b6a5ff','#73e4d9','#ffa7b5'];
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const sub=(a,b)=>a.map((v,i)=>v-b[i]);
@@ -15,7 +15,7 @@ const outputLut=Array.from({length:4096},(_,i)=>srgb(i/4095));
 export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
   const ctx=canvas.getContext('2d',{alpha:false});
   if(!ctx)throw new Error('Canvas is unavailable');
-  let width=900,height=520,angle=0,selected=0,showRays=true,yaw=-.7,elevation=.2,disposed=false,pending=0;
+  let width=900,height=520,angle=0,selected=0,showRays=true,yaw=-.12,elevation=0,disposed=false,pending=0;
   let texture=null,texW=0,texH=0;
   let earth=[1.15,0,0],sun=[-3.9,0,0],target=[-.85,0,0],camera=[-.85,4.4,11.1];
   let sight=[0,.371,.928],right=[1,0,0],up=[0,.928,-.371],scale=100,originX=450,originY=260;
@@ -32,6 +32,7 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
     right=[Math.cos(yaw),0,-Math.sin(yaw)];up=[-Math.sin(elevation)*Math.sin(yaw),Math.cos(elevation),-Math.sin(elevation)*Math.cos(yaw)];
     const oldRight=right,oldUp=up;right=oldRight.map((v,i)=>v*Math.cos(VIEW_ROLL)+oldUp[i]*Math.sin(VIEW_ROLL));up=oldUp.map((v,i)=>v*Math.cos(VIEW_ROLL)-oldRight[i]*Math.sin(VIEW_ROLL));
     canvas.dataset.axisTilt="23.5";canvas.dataset.sunRadius=String(SUN_RADIUS);canvas.dataset.earthRadius=String(R);
+    canvas.dataset.lightDirection='1,0,0';canvas.dataset.terminatorNormal='1,0,0';canvas.dataset.illumination='december-solstice';
     camera=target.map((v,i)=>v+sight[i]*12);
     const aspect=width/Math.max(height,1),vertical=Math.max(5.4,(width<520?6.7:8.4)/aspect);
     const ex=dot(sub(earth,target),right),ey=dot(sub(earth,target),up),sx=dot(sub(sun,target),right),sy=dot(sub(sun,target),up);
@@ -50,8 +51,8 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
       const side=Math.ceil(pr*2)+2;sprite.width=side;sprite.height=side;const frame=spriteCtx.createImageData(side,side),data=frame.data;
       for(let y=0;y<side;y++){const ny=-(y+.5-side/2)/pr;for(let x=0;x<side;x++){const nx=(x+.5-side/2)/pr,rr=nx*nx+ny*ny;if(rr>1)continue;const nz=Math.sqrt(1-rr);
         const wx=right[0]*nx+up[0]*ny+sight[0]*nz,wy=right[1]*nx+up[1]*ny+sight[1]*nz,wz=right[2]*nx+up[2]*ny+sight[2]*nz;
-        const uy=wy*AXIS[1]+wz*AXIS[2],uz=-wy*AXIS[2]+wz*AXIS[1];
-        const lx=wx*co-uz*si,lz=wx*si+uz*co;
+        const ux=wx*AXIS[1]-wy*AXIS[0],uy=wx*AXIS[0]+wy*AXIS[1],uz=wz;
+        const lx=ux*co-uz*si,lz=ux*si+uz*co;
         let tx=Math.floor((Math.atan2(-lz,lx)/(Math.PI*2)+.5)*texW);tx=((tx%texW)+texW)%texW;
         const ty=Math.min(texH-1,Math.max(0,Math.floor((.5-Math.asin(Math.max(-1,Math.min(1,uy)))/Math.PI)*texH)));
         const index=(ty*texW+tx)*4,oi=(y*side+x)*4,light=-wx;
@@ -65,6 +66,7 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
     // Rotate the geographical grid with the actual sphere, clipping back arcs.
     ctx.strokeStyle='#b9e2eb25';ctx.lineWidth=.7;for(const lat of[-60,-30,0,30,60]){let drawing=false;ctx.beginPath();for(let lon=-180;lon<=180;lon+=4){const normal=rotate(geo(lon,lat,1),a);if(dot(normal,sight)>0){const p=project(normal.map((v,i)=>earth[i]+v*R));if(drawing)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y);drawing=true;}else drawing=false;}ctx.stroke();}
     ctx.strokeStyle='#91b8cc55';ctx.lineWidth=1;ctx.beginPath();ctx.arc(ec.x,ec.y,pr,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#d8efffcc';ctx.lineWidth=1.2;ctx.beginPath();let terminatorDrawing=false;for(let k=0;k<=180;k++){const t=k*Math.PI/90,normal=[0,Math.cos(t),Math.sin(t)];if(dot(normal,sight)>0){const p=project(normal.map((v,i)=>earth[i]+v*R*1.002));if(terminatorDrawing)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y);terminatorDrawing=true;}else terminatorDrawing=false;}ctx.stroke();
     const labels=offsets.map((offset,i)=>{const normal=rotate(geo(114.2+offset,LAT,1),a),world=normal.map((v,j)=>earth[j]+v*R*1.018),p=project(world),visible=dot(normal,sight)>.035;
       if(visible){ctx.fillStyle=colors[i];ctx.beginPath();ctx.arc(p.x,p.y,i===selected?5:3.5,0,Math.PI*2);ctx.fill();if(i===selected){ctx.strokeStyle='#fff3d2';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.stroke();}}return{id:['A','B','C','D'][i],...p,visible};});
     onFrame({labels,selectedVisible:labels[selected].visible,sun:{x:sc.x,y:sc.y+sr+10},north:project(AXIS.map((v,i)=>earth[i]+v*2.43))});
@@ -74,7 +76,7 @@ export function createSoftwareEarthScene(canvas,onFrame,onReady,onError){
   resize(canvas.clientWidth||900,canvas.clientHeight||520);
   return{kind:'software-3d',updateModel(a,s,r){angle=a;selected=s;showRays=r;invalidate();},resize,
     rotateView(dx,dy){yaw-=dx*.008;elevation=Math.max(-1.2,Math.min(1.56,elevation+dy*.006));invalidate();},
-    preset(view){yaw=view==='north'?0:-.7;elevation=view==='north'?Math.PI/2-AXIAL_TILT:.2;invalidate();},
+    preset(view){yaw=view==='north'?Math.PI/2:-.12;elevation=view==='north'?Math.PI/2-AXIAL_TILT:0;invalidate();},
     hitEarth(x,y){const rect=canvas.getBoundingClientRect(),p=project(earth);return Math.hypot(x-rect.left-p.x,y-rect.top-p.y)<R*scale;},
     dispose(){disposed=true;cancelAnimationFrame(pending);image.onload=null;image.onerror=null;texture=null;},
   };

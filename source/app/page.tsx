@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Sun, Moon, Play, Pause, RotateCcw, Eye, Lightbulb, Check, ChevronRight, Compass, Globe2, MessageCircle } from "lucide-react";
 import EarthModel from "./earth-model";
 import ObserverView from "./observer-view";
+import { observerSky } from "../lib/earth-geometry.js";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -16,8 +17,7 @@ const POINTS = [
 ];
 const wrap = (n: number) => ((n % 360) + 360) % 360;
 function pointState(angle: number, offset = 0) {
-  const p = wrap(angle + offset);
-  const light = Math.cos(p * Math.PI / 180);
+  const light = observerSky(angle,offset).light;
   return Math.abs(light) < 0.035 ? "boundary" : light > 0 ? "day" : "night";
 }
 const stateText = (s: string, names: boolean) => s === "boundary" ? "日夜交界附近" : s === "day" ? (names ? "白天 · 向光" : "受到陽光") : (names ? "黑夜 · 背光" : "沒有陽光");
@@ -100,7 +100,7 @@ export default function Page() {
         </Tabs></aside>
       </div>
       <section className="sharing"><span className="share-icon"><MessageCircle size={22} /></span><div><h2>把你的發現，說給同學聽。</h2><p>「我留意到＿＿。當地球轉動，＿＿。所以我認為日夜的發生和＿＿有關。」</p></div><details className="discovery-summary"><summary>交流後，看看科學解釋</summary><p>太陽照亮地球的一面，向光面是白天，背光面是黑夜。地球由西向東自轉，使同一地方交替向光和背光，形成日夜。自轉一圈約需 24 小時。</p></details></section>
-      <footer className="page-footer"><span>先觀察，再操作，最後分享。</span><details><summary>關於這個教學模型</summary><div><p>這是可以轉換視角的 3D 球體模型。地球由西向東自轉；從北極上方俯視時，自轉是逆時針方向。拖動地球和拉桿可前後查看時間；「轉視角」只改變觀察方向，不會改變時間。A 是香港觀察點，B、C、D 是同緯度的示意觀察點。</p><p>地軸相對公轉軌道平面的垂直方向傾斜約 23.5°，地球繞着這條傾斜的軸自轉。為集中觀察日夜，模型固定在春分／秋分附近的受光情況，沒有模擬公轉、季節、極晝極夜、大氣折射或實際日出日落時間；太陽和地球的大小、距離及播放速度並非實際比例。畫面不作時計或天氣預報。模型的亮暗用來表示是否受到陽光。右上方小人的視野會跟隨選取的觀察點，顯示面向南方的天空示意；太陽位置和地球模型同步。</p><p>地表影像採用 Three.js 示例素材。本活動不收集姓名、作答或學習進度；重新整理頁面便重新開始。教師可讓學生兩人一組，一人操作、一人描述，再交換角色。</p><a href="https://science.nasa.gov/resource/seeing-equinoxes-and-solstices-from-space/" target="_blank" rel="noopener noreferrer">延伸閱讀：NASA · 地軸、日夜與受光情況</a></div></details></footer>
+      <footer className="page-footer"><span>先觀察，再操作，最後分享。</span><details><summary>關於這個教學模型</summary><div><p>這是可以轉換視角的 3D 球體模型。地球由西向東自轉；從北極上方俯視時，自轉是逆時針方向。拖動地球和拉桿可前後查看時間；「轉視角」只改變觀察方向，不會改變時間。A 是香港觀察點，B、C、D 是同緯度的示意觀察點。</p><p>地軸相對公轉軌道平面的垂直方向傾斜約 23.5°，地球繞着這條傾斜的軸自轉。為清楚區分地軸與日夜分界，模型採用北半球冬至附近的受光示意：陽光沿固定方向平行照射，日夜分界面與陽光方向垂直，地軸獨立傾斜23.5°。北半球在此示意中日間較短；春分／秋分的日夜分界則會穿過兩極。模型沒有模擬公轉、季節切換、大氣折射或實際日出日落時間；太陽和地球的大小、距離及播放速度並非實際比例。畫面不作時計或天氣預報。模型的亮暗用來表示是否受到陽光。右上方小人的視野會跟隨選取的觀察點，顯示面向南方的天空示意；太陽位置和地球模型同步。</p><p>地表影像採用 Three.js 示例素材。本活動不收集姓名、作答或學習進度；重新整理頁面便重新開始。教師可讓學生兩人一組，一人操作、一人描述，再交換角色。</p><a href="https://science.nasa.gov/resource/seeing-equinoxes-and-solstices-from-space/" target="_blank" rel="noopener noreferrer">延伸閱讀：NASA · 地軸、日夜與受光情況</a></div></details></footer>
     </main>
   </div>;
 }

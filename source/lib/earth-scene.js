@@ -4,7 +4,7 @@ import { AXIAL_TILT, AXIS } from './earth-geometry.js';
 const DEG = Math.PI / 180;
 const RADIUS = 1.5;
 const SUN_RADIUS = 1.8;
-const VIEW_ROLL = 0.24;
+const VIEW_ROLL = 0;
 const HK_LONGITUDE = 114.2;
 const LATITUDE = 22.3;
 const offsets = [0, 180, -90, 90];
@@ -27,7 +27,7 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
   earth.position.copy(earthCenter);
   scene.add(earth);
   let angle = 0, selected = 0, width = 900, height = 520;
-  let yaw = -0.7, elevation = 0.2, disposed = false, pending = 0;
+  let yaw = -0.12, elevation = 0, disposed = false, pending = 0;
   const target = new THREE.Vector3(-0.85, 0, 0);
 
   const texture = new THREE.TextureLoader().load(new URL('./earth-map.jpg',document.baseURI).href, () => {
@@ -66,7 +66,11 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
   const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.092,16,12),new THREE.MeshBasicMaterial({color:'#fff4cf',wireframe:true,transparent:true,opacity:0.85}));
   earth.add(highlight);
   const axis = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,4.8,12),new THREE.MeshBasicMaterial({color:'#ffe1a0'}));
-  const axisGroup = new THREE.Group(); axisGroup.position.copy(earthCenter); axisGroup.rotation.x=AXIAL_TILT;axisGroup.add(axis); scene.add(axisGroup);
+  const axisGroup = new THREE.Group(); axisGroup.position.copy(earthCenter); axisGroup.rotation.z=-AXIAL_TILT;axisGroup.add(axis); scene.add(axisGroup);
+  // A fixed geographic-independent ring where the world-space surface normal
+  // is perpendicular to sunlight. It never rotates with the Earth or axis.
+  const terminator = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({length:180},(_,i)=>new THREE.Vector3(0,Math.cos(i*Math.PI/90)*RADIUS*1.002,Math.sin(i*Math.PI/90)*RADIUS*1.002))),new THREE.LineBasicMaterial({color:'#d8efff',transparent:true,opacity:.8}));
+  terminator.position.copy(earthCenter);scene.add(terminator);
 
   const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_RADIUS,48,32),new THREE.MeshBasicMaterial({color:'#ffdb87'}));
   sun.position.set(-3.9,0,0); scene.add(sun);
@@ -104,12 +108,13 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
   };
   function draw() {
     pending=0; if(disposed) return;
-    earth.rotation.set(AXIAL_TILT,(180-HK_LONGITUDE+angle)*DEG,0,'XYZ');
+    earth.rotation.set(0,(180-HK_LONGITUDE+angle)*DEG,-AXIAL_TILT,'ZYX');
     highlight.position.copy(markers[selected].position);
     markers.forEach((m,i)=>m.scale.setScalar(i===selected?1.3:1));
     camera.position.set(target.x+12*Math.cos(elevation)*Math.sin(yaw),12*Math.sin(elevation),12*Math.cos(elevation)*Math.cos(yaw));
     camera.lookAt(target); camera.rotateZ(VIEW_ROLL); camera.updateMatrixWorld();
     canvas.dataset.axisTilt="23.5";canvas.dataset.sunRadius=String(SUN_RADIUS);canvas.dataset.earthRadius=String(RADIUS);
+    canvas.dataset.lightDirection='1,0,0';canvas.dataset.terminatorNormal='1,0,0';canvas.dataset.illumination='december-solstice';
     // Keep both bodies inside the space below the model toolbar as the camera turns.
     const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0);
     const up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
@@ -140,7 +145,7 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
     if(w<40||h<170)return;
     width=w; height=h;
     const small=w<520;
-    earthCenter.x=small?1.0:1.15;earth.position.copy(earthCenter);axisGroup.position.copy(earthCenter);
+    earthCenter.x=small?1.0:1.15;earth.position.copy(earthCenter);axisGroup.position.copy(earthCenter);terminator.position.copy(earthCenter);
     sun.position.x=small?-3.9:-4.8;glowSprite.position.copy(sun.position);
     target.x=small?-0.4:-0.85;
     const aspect=w/Math.max(h,1);
@@ -153,7 +158,7 @@ export function createEarthScene(canvas, onFrame, onTextureReady, onError) {
     updateModel(nextAngle,nextSelected,showRays){angle=nextAngle;selected=nextSelected;rays.visible=showRays;invalidate();},
     resize,
     rotateView(dx,dy){yaw-=dx*0.008;elevation=THREE.MathUtils.clamp(elevation+dy*0.006,-1.2,1.56);invalidate();},
-    preset(view){yaw=view==='north'?0:-0.7;elevation=view==='north'?Math.PI/2-AXIAL_TILT:0.2;invalidate();},
+    preset(view){yaw=view==='north'?Math.PI/2:-0.12;elevation=view==='north'?Math.PI/2-AXIAL_TILT:0;invalidate();},
     hitEarth(x,y){const rect=canvas.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1),camera);return raycaster.intersectObject(globe).length>0;},
     dispose(){disposed=true;cancelAnimationFrame(pending);scene.traverse(o=>{o.geometry?.dispose();if(o.material){const materials=Array.isArray(o.material)?o.material:[o.material];materials.forEach(m=>m.dispose());}});texture.dispose();glowTexture.dispose();renderer.dispose();},
   };
